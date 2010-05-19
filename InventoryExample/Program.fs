@@ -21,6 +21,7 @@ open Migrations
 
 let migrations = [
 
+
     migration "2010_05_15_NventstoreProduct_DefaultImage" [
         alterEntity Platforms.Nventstore.Product [
             reference "DefaultImage" Gallery.File
@@ -47,18 +48,18 @@ let migrations = [
 							WHERE f.[NventstoreProductID] = [Platforms.Nventstore].[NventstoreProduct].[NventstoreProductID] )"
         ]
     ]
-
-    migration "2010_05_16_Audit" [
-        createRecord Support.Audit [
-            primmaryKey
-            xml "Data"
-            support
-            context
-        ]
-    ]
-
+    
     migration "2010_05_17_Platforms_Nventstore_NventstoreProduct_IsAssigned" [
-        alterEntity Platforms.Nventstore.Product [ 
+        alterEntity Platforms.Nventstore.Product [
+            drop "CanPublish" 
+            drop "Assigned"
+
+            boolean "CanPublish"
+            boolean "IsAssigned"
+            boolean "IsPublishEnabled"
+        ]
+
+        alterEntity Platforms.Nventstore.Product [
             drop "CanPublish" 
             drop "Assigned"
 
