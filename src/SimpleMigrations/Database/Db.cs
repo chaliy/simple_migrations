@@ -1,23 +1,13 @@
-﻿using System;
+﻿using System.Configuration;
 
 namespace SimpleMigrations.Database
 {
     public static class Db
     {
-        public static string AlterTable(string existingTable, Action<AlterTableSpec> builder)
+        public static DatabaseConnection CreateByNamedConnection(string name)
         {
-            var spec = new AlterTableSpec(existingTable);
-            builder(spec);
-
-            return spec.ToString();
-        }
-
-        public static string CreateTable(string table, string primaryKey, Action<CreateTableSpec> builder)
-        {
-            var spec = new CreateTableSpec(table, primaryKey);
-            builder(spec);
-
-            return spec.ToString();
+            var connectionConfig = ConfigurationManager.ConnectionStrings["Inventory"];            
+            return new DatabaseConnection(connectionConfig.ConnectionString);
         }
     }
 }

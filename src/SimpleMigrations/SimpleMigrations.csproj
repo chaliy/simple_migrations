@@ -58,6 +58,7 @@
     <Compile Include="Database\AlterTableSpec.cs" />
     <Compile Include="Database\ColumnSpec.cs" />
     <Compile Include="Database\CreateTableSpec.cs" />
+    <Compile Include="Database\DatabaseConnection.cs" />
     <Compile Include="Database\Db.cs" />
     <Compile Include="Database\ICanAddColumns.cs" />
     <Compile Include="Database\ReferenceSpec.cs" />

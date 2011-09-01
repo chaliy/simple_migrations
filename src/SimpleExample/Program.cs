@@ -11,14 +11,15 @@ namespace SimpleExample
 
             try
             {
-                var migrator = new Migrator("");
+                var db = Db.CreateByNamedConnection("Something");
+                var migrator = Migrator.CreateByNamedConnection("Something");
                 using (migrator.Info.Subscribe(Console.WriteLine))
                 {
                     // Add new migration at the end of this block
 
                     // 2011-08-22
-                    migrator.ExecuteMigration("Create Purchasing.Invoice",
-                                            Db.CreateTable("Purchasing.Invoice", "InvoiceID",
+                    migrator.Define("Create Invoice", () =>
+                                            db.CreateTable("Invoice", "InvoiceID",
                                                 t =>
                                                 {
                                                     t.StringColumn("InvoiceDate");
@@ -28,12 +29,20 @@ namespace SimpleExample
                     );
 
                     // 2011-08-23
-                    migrator.ExecuteMigration("Add InvoiceTotal to Purchasing.Invoice",
-                                            Db.AlterTable("Purchasing.Invoice", t =>
-                                            {
-                                                t.StringColumn("InvoiceTotal");
-                                            })
-                    );
+                    migrator.Define("Add InvoiceTotal to Invoice", () =>
+                    {
+                        // Add column InvoiceTotal
+                        db.AlterTable("Invoice", t =>
+                            {
+                                t.StringColumn("InvoiceTotal");
+                            });
+
+                        // And update this total with default value in the same migration
+                        db.Tables.Invoice.Update(InvoiceTotal: "12.00");
+                    });
+
+                    // Run migrations
+                    migrator.Run();
                 }
             }
             catch (Exception ex)
