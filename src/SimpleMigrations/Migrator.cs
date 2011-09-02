@@ -1,21 +1,21 @@
 ﻿using System;
-using System.Collections.Generic;
-using System.Configuration;
-using System.Data.Common;
-using System.Data.SqlClient;
+using System.Collections.Generic;                
 using System.Reactive.Subjects;
+using JetBrains.Annotations;
+using SimpleMigrations.Advanced.Registry;
+using SimpleMigrations.Advanced.Utils;
 
 namespace SimpleMigrations
 {
     public class Migrator
     {
-        private readonly Subject<string> _infoSubject = new Subject<string>();        
-        private readonly string _connectionString;
+        private readonly Subject<string> _infoSubject = new Subject<string>();
+        private readonly IRegistryProvider _registryProvider;
         private readonly List<MigrationDef> _migrations = new List<MigrationDef>();
 
-        public Migrator(string connectionString)
+        public Migrator(IRegistryProvider registryProvider)
         {
-            _connectionString = connectionString;
+            _registryProvider = registryProvider;
         }
 
         public IObservable<string> Info
@@ -29,61 +29,32 @@ namespace SimpleMigrations
         }
 
         public void Run()
-        {
-            EnsureInit();
-
-            var db = Simple.Data.Database.OpenConnection(_connectionString);
-
+        {            
             foreach (var migration in _migrations)
             {
                 var migrationId = migration.Id;
-                var migrationRec = db.__Migrations.FindByMigrationID(migrationId);
 
-                if (migrationRec == null)
+                if (!_registryProvider.IsMigrationApplied(migrationId))
                 {
                     _infoSubject.OnNext("Executing migration: " + migrationId);
 
                     migration.Action();
                     
-                    db.__Migrations.Insert(MigrationID: migrationId, LastExecuted: DateTime.Now);
+                    _registryProvider.RegisterMigrationApplied(migrationId);
                 }    
-            }            
-        }        
-
-        private void EnsureInit()
-        {            
-            ExecuteScript(
-                @"IF NOT EXISTS (SELECT * FROM sys.objects WHERE object_id = OBJECT_ID(N'[dbo].[__Migrations]') AND type in (N'U'))
-CREATE TABLE [dbo].[__Migrations](
-	[MigrationID] [nvarchar](450) NOT NULL PRIMARY KEY,
-	[LastExecuted] [datetime2](7) NOT NULL )");
-        }
-
-        private void ExecuteScript(string sql)
-        {
-            using (var con = CreateOpenConnection())
-            {
-                var cmd = con.CreateCommand();
-                cmd.CommandText = sql;
-                cmd.ExecuteNonQuery();
             }
         }
 
-        private DbConnection CreateOpenConnection()
+        public static Migrator CreateWithNamedConnection([NotNull]string name)
         {
-            var factory = SqlClientFactory.Instance;
-
-            var con = factory.CreateConnection();
-            con.ConnectionString = _connectionString;
-            con.Open();
-
-            return con;
+            var connectionString = DbConnectionUtils.GetNamedConnectionString(name);
+            return CreateWithConnectionString(connectionString);
         }
 
-        public static Migrator CreateByNamedConnection(string connectionName)
-        {
-            var connectionConfig = ConfigurationManager.ConnectionStrings["Inventory"];
-            return new Migrator(connectionConfig.ConnectionString);
+        public static Migrator CreateWithConnectionString([NotNull]string connectionString)
+        {            
+            var provider = new SqlServerRegistryProvider(connectionString);
+            return new Migrator(provider);
         }
 
         private class MigrationDef

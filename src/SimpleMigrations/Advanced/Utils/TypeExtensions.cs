@@ -1,7 +1,7 @@
 ﻿using System.ComponentModel;
 using System.Reflection;
 
-namespace SimpleMigrations.Utils
+namespace SimpleMigrations.Advanced.Utils
 {
     static class TypeExtensions
     {

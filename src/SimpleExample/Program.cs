@@ -9,10 +9,14 @@ namespace SimpleExample
         static void Main(string[] args)
         {
 
+            // To run this example you need SimpleMigrationsExample database in place
+
             try
             {
-                var db = Db.CreateByNamedConnection("Something");
-                var migrator = Migrator.CreateByNamedConnection("Something");
+                const string connectionString = "Server = .;Integrated Security=True;Initial Catalog=SimpleMigrationsExample;";
+
+                var db = Db.CreateWithConnectionString(connectionString);
+                var migrator = Migrator.CreateWithConnectionString(connectionString);
                 using (migrator.Info.Subscribe(Console.WriteLine))
                 {
                     // Add new migration at the end of this block
@@ -38,7 +42,10 @@ namespace SimpleExample
                             });
 
                         // And update this total with default value in the same migration
-                        db.Tables.Invoice.Update(InvoiceTotal: "12.00");
+                        db.ModifyData(data =>
+                        {
+                            data.Invoice.UpdateAll(InvoiceTotal: "12.00");
+                        });
                     });
 
                     // Run migrations
@@ -47,7 +54,9 @@ namespace SimpleExample
             }
             catch (Exception ex)
             {
-                Console.WriteLine("Error during app migration. " + ex.Message, ex);
+                Console.ForegroundColor = ConsoleColor.Red;
+                Console.Error.WriteLine("Exception occurred: " + ex);                
+                Console.ResetColor();
             }
 
         }

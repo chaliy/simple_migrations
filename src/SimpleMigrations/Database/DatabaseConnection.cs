@@ -1,13 +1,18 @@
 using System;
+using System.Collections.Concurrent;
 using System.Data.Common;
 using System.Data.SqlClient;
+using System.Reflection;
+using Simple.Data;
+using Simple.Data.Ado;
+using Simple.Data.Ado.Schema;
+using Simple.Data.SqlServer;
 
 namespace SimpleMigrations.Database
 {
     public class DatabaseConnection
     {
-        private readonly string _connectionString;
-        private dynamic _tables;
+        private readonly string _connectionString;        
 
         public DatabaseConnection(string connectionString)
         {
@@ -30,17 +35,25 @@ namespace SimpleMigrations.Database
             ExecuteScript(spec.ToString());
         }
         
-        public dynamic Tables
+        public void ModifyData(Action<dynamic> action)
         {
-            get
-            {
-                if (_tables == null)
-                {
-                    _tables = Simple.Data.Database.OpenConnection(_connectionString);
-                }
+            // This is hack to invalidate cached database schemas
+            var instances = (ConcurrentDictionary<string, DatabaseSchema>)typeof(DatabaseSchema)
+                .GetField("Instances", BindingFlags.Static | BindingFlags.NonPublic).GetValue(null);
+            instances.Clear();
 
-                return _tables;
-            }
+            var connectionProvider = new SqlConnectionProvider(_connectionString);
+            var adapterCtor = typeof(AdoAdapter).GetConstructor(
+                BindingFlags.NonPublic | BindingFlags.Instance,
+                null, new[] { typeof(IConnectionProvider) }, null);
+            var adapter = (Adapter)adapterCtor.Invoke(new [] {connectionProvider});
+
+            var dbCtor = typeof(Simple.Data.Database).GetConstructor(
+                BindingFlags.NonPublic | BindingFlags.Instance,
+                null, new[] { typeof(Adapter) }, null);
+            
+            var db = (dynamic)dbCtor.Invoke(new [] {adapter});
+            action(db);
         }
 
         private void ExecuteScript(string sql)
