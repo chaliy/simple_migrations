@@ -38,6 +38,7 @@ namespace SimpleMigrations.Database
         public void ModifyData(Action<dynamic> action)
         {
             // This is hack to invalidate cached database schemas
+            // More details - http://groups.google.com/group/simpledata/browse_thread/thread/9ecef3e939dcd62d
             var instances = (ConcurrentDictionary<string, DatabaseSchema>)typeof(DatabaseSchema)
                 .GetField("Instances", BindingFlags.Static | BindingFlags.NonPublic).GetValue(null);
             instances.Clear();
