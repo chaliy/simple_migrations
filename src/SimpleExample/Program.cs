@@ -43,7 +43,7 @@ namespace SimpleExample
 
                         // And update this total with default value in the same migration
                         db.ModifyData(data =>
-                        {
+                        {                            
                             data.Invoice.UpdateAll(InvoiceTotal: "12.00");
                         });
                     });

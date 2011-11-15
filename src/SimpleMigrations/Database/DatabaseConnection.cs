@@ -1,12 +1,6 @@
 using System;
-using System.Collections.Concurrent;
 using System.Data.Common;
 using System.Data.SqlClient;
-using System.Reflection;
-using Simple.Data;
-using Simple.Data.Ado;
-using Simple.Data.Ado.Schema;
-using Simple.Data.SqlServer;
 
 namespace SimpleMigrations.Database
 {
@@ -37,27 +31,12 @@ namespace SimpleMigrations.Database
         
         public void ModifyData(Action<dynamic> action)
         {
-            // This is hack to invalidate cached database schemas
-            // More details - http://groups.google.com/group/simpledata/browse_thread/thread/9ecef3e939dcd62d
-            var instances = (ConcurrentDictionary<string, DatabaseSchema>)typeof(DatabaseSchema)
-                .GetField("Instances", BindingFlags.Static | BindingFlags.NonPublic).GetValue(null);
-            instances.Clear();
-
-            var connectionProvider = new SqlConnectionProvider(_connectionString);
-            var adapterCtor = typeof(AdoAdapter).GetConstructor(
-                BindingFlags.NonPublic | BindingFlags.Instance,
-                null, new[] { typeof(IConnectionProvider) }, null);
-            var adapter = (Adapter)adapterCtor.Invoke(new [] {connectionProvider});
-
-            var dbCtor = typeof(Simple.Data.Database).GetConstructor(
-                BindingFlags.NonPublic | BindingFlags.Instance,
-                null, new[] { typeof(Adapter) }, null);
-            
-            var db = (dynamic)dbCtor.Invoke(new [] {adapter});
+            var db = Simple.Data.Database.OpenConnection(_connectionString);            
+            db.GetAdapter().Reset();            
             action(db);
         }
 
-        private void ExecuteScript(string sql)
+        public void ExecuteScript(string sql)
         {
             using (var con = CreateOpenConnection())
             {
