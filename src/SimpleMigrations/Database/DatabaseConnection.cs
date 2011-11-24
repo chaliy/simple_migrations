@@ -1,4 +1,5 @@
 using System;
+using System.Collections.Generic;
 using System.Data.Common;
 using System.Data.SqlClient;
 
@@ -40,10 +41,18 @@ namespace SimpleMigrations.Database
         {
             using (var con = CreateOpenConnection())
             {
-                var cmd = con.CreateCommand();
-                cmd.CommandText = sql;
-                cmd.ExecuteNonQuery();
+                foreach (var sql1 in ParseBatch(sql))
+                {
+                    var cmd = con.CreateCommand();
+                    cmd.CommandText = sql1;
+                    cmd.ExecuteNonQuery();   
+                }
             }
+        }
+
+        private static IEnumerable<string> ParseBatch(string input)
+        {
+            return input.Split(new []{"\r\nGO\r\n"}, StringSplitOptions.RemoveEmptyEntries);
         }
 
         private DbConnection CreateOpenConnection()
